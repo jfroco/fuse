@@ -319,6 +319,10 @@ sdl_available=no
 if test "$enable_sdl2" = yes; then
   PKG_CHECK_MODULES([SDL2], [sdl2], [sdl_available=2],
                     [AC_MSG_WARN([SDL 2 not found])])
+  dnl On Windows sdl2.pc adds -Dmain=SDL_main, which would also rename main()
+  dnl in the standalone test programs. fuse.c includes SDL.h, which redefines
+  dnl main itself, so the global define is not needed.
+  SDL2_CFLAGS=`echo "$SDL2_CFLAGS" | sed 's/-Dmain=SDL_main//'`
 fi
 
 dnl Enable the SDL UI if all conditions are met.

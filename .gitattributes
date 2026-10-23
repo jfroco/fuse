@@ -1,5 +1,7 @@
-/settings.dat text
-/menu_data.dat text
-/keysyms.dat text
-/ui/options.dat text
-/z80/*.dat text
+# The Perl generators reject CRLF, so keep LF even in Windows checkouts
+/settings.dat text eol=lf
+/menu_data.dat text eol=lf
+/keysyms.dat text eol=lf
+/ui/options.dat text eol=lf
+/z80/*.dat text eol=lf
+/.devcontainer/*.sh text eol=lf

@@ -1,0 +1,25 @@
+{
+  "name": "Fuse for Windows (MinGW64 cross-compilation)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      // Librerías MINGW64 de quasi-msys2 que necesitan Fuse (UI Win32 y SDL2) y libspectrum.
+      "QUASI_MSYS2_PACKAGES": "_zlib _bzip2 _xz _libiconv _libpng _libxml2 _libgcrypt _libgpg-error _SDL2",
+      // Commit de libspectrum (git master) contra el que se compila Fuse.
+      "LIBSPECTRUM_REPO": "https://git.code.sf.net/p/fuse-emulator/libspectrum",
+      "LIBSPECTRUM_REF": "4018215cdb8a1674de09947af98520bf243b1658"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "remoteUser": "root"
+}

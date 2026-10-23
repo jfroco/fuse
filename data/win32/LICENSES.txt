@@ -24,7 +24,7 @@ License: GPL-2+
   Additional third-party notices, when present, can be found in the
   3rd-party directory.
 
-Files: libgcc_s_sjlj-1.dll libstdc++-6.dll
+Files: libgcc_s_sjlj-1.dll libgcc_s_seh-1.dll libstdc++-6.dll
 Copyright: 1987-2026 Free Software Foundation, Inc.
 License: GPL-3+ and GCC-Runtime-Library-Exception-3.1
   The corresponding notices copied from the build environment can be found in
@@ -67,13 +67,13 @@ License: BSD-style
   The corresponding notice copied from the build environment can be found in
   the 3rd-party directory.
 
-Files: libxml2-2.dll
+Files: libxml2-2.dll libxml2-16.dll
 Copyright: 1998-2026 Daniel Veillard and others
 License: MIT
   The corresponding notice copied from the build environment can be found in
   the 3rd-party directory.
 
-Files: iconv.dll
+Files: iconv.dll libiconv-2.dll
 Copyright: 1999-2026 Free Software Foundation, Inc.
 License: LGPL-2.1+
   The corresponding notice copied from the build environment can be found in
