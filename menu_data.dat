@@ -140,6 +140,8 @@ Options/_Filter options..., Item
 Options/F_ull screen, Item, F11
 #elif defined UI_GTK
 Options/F_ull screen, Item, F11
+#elif defined UI_WIN32
+Options/F_ull screen, Item, F11
 #endif
 
 Options/_Disk options..., Item

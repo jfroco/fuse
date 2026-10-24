@@ -19,4 +19,12 @@
     />
   </dependentAssembly>
 </dependency>
+<!-- Work in physical pixels, so integer scaling is not undone by Windows
+     stretching the window on monitors with a scale factor above 100% -->
+<application xmlns="urn:schemas-microsoft-com:asm.v3">
+  <windowsSettings>
+    <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
+    <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2, System</dpiAwareness>
+  </windowsSettings>
+</application>
 </assembly>

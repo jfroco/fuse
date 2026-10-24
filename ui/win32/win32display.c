@@ -34,6 +34,7 @@
 #include "ui/ui.h"
 #include "ui/uidisplay.h"
 #include "ui/scaler/scaler.h"
+#include "win32_fullscreen_layout.h"
 #include "win32internals.h"
 
 /* The size of a 1x1 image in units of
@@ -97,11 +98,77 @@ static libspectrum_dword bw_colours[16];
 /* The current size of the window (in units of DISPLAY_SCREEN_*) */
 static int win32display_current_size=1;
 
+/* In full screen the scaled image is replicated by an integer factor and
+   centred in the window, which covers the whole monitor */
+static int fullscreen = 0;
+static int fullscreen_area_width, fullscreen_area_height;
+static win32_fullscreen_layout fullscreen_layout;
+
+/* The scaler in use before going full screen, the one picked for full
+   screen and the one to restore when leaving it */
+static scaler_type fullscreen_saved_scaler = SCALER_NUM;
+static scaler_type fullscreen_auto_scaler = SCALER_NUM;
+static scaler_type fullscreen_restore_scaler = SCALER_NUM;
+
 static int init_colours( void );
 static void win32display_add_dirty_area( int x, int y, int width, int height );
 static void win32display_scale_dirty_areas( void );
 static void register_scalers( int force_scaler );
 static void win32display_load_gfx_mode( void );
+static void fullscreen_pick_scaler( void );
+
+static void
+fill_black( HDC dc, int left, int top, int right, int bottom )
+{
+  RECT r;
+
+  if( left >= right || top >= bottom ) return;
+
+  SetRect( &r, left, top, right, bottom );
+  FillRect( dc, &r, GetStockObject( BLACK_BRUSH ) );
+}
+
+/* Paint the full screen image, replicating every scaled pixel into a
+   square of whole screen pixels, and the black borders around it */
+static void
+fullscreen_blit( HDC dest_dc, const RECT *paint )
+{
+  const win32_fullscreen_layout *layout = &fullscreen_layout;
+  int factor = layout->replicate;
+  int left, top, right, bottom;
+  RECT image, area;
+  HDC src_dc;
+  HBITMAP src_bmp;
+
+  SetRect( &image, layout->x, layout->y, layout->x + layout->width,
+           layout->y + layout->height );
+
+  fill_black( dest_dc, paint->left, paint->top, paint->right, image.top );
+  fill_black( dest_dc, paint->left, image.bottom, paint->right,
+              paint->bottom );
+  fill_black( dest_dc, paint->left, image.top, image.left, image.bottom );
+  fill_black( dest_dc, image.right, image.top, paint->right, image.bottom );
+
+  if( !IntersectRect( &area, paint, &image ) ) return;
+
+  /* The scaled pixels covering the area to paint */
+  left = ( area.left - layout->x ) / factor;
+  top = ( area.top - layout->y ) / factor;
+  right = ( area.right - layout->x + factor - 1 ) / factor;
+  bottom = ( area.bottom - layout->y + factor - 1 ) / factor;
+
+  src_dc = CreateCompatibleDC( dest_dc );
+  src_bmp = SelectObject( src_dc, fuse_BMP );
+
+  /* Nearest neighbour, so an integer factor copies pixels exactly */
+  SetStretchBltMode( dest_dc, COLORONCOLOR );
+  StretchBlt( dest_dc, layout->x + left * factor, layout->y + top * factor,
+              ( right - left ) * factor, ( bottom - top ) * factor,
+              src_dc, left, top, right - left, bottom - top, SRCCOPY );
+
+  SelectObject( src_dc, src_bmp );
+  DeleteDC( src_dc );
+}
 
 void
 blit( void )
@@ -120,7 +187,9 @@ blit( void )
   width = ps.rcPaint.right - ps.rcPaint.left;
   height = ps.rcPaint.bottom - ps.rcPaint.top;
 
-  if( width && height ) {
+  if( fullscreen ) {
+    fullscreen_blit( dest_dc, &ps.rcPaint );
+  } else if( width && height ) {
     src_dc = CreateCompatibleDC( dest_dc );
     src_bmp = SelectObject( src_dc, fuse_BMP );
 
@@ -255,7 +324,11 @@ uidisplay_init( int width, int height )
   if ( scaler_select_scaler( current_scaler ) )
         scaler_select_scaler( SCALER_NORMAL );
 
-  win32display_load_gfx_mode();
+  /* The machine may have changed, and with it the available scalers */
+  if( fullscreen )
+    fullscreen_pick_scaler();
+  else
+    win32display_load_gfx_mode();
 
   machine_name = libspectrum_machine_name( machine_current->machine );
   win32statusbar_update_machine( machine_name );
@@ -333,6 +406,17 @@ uidisplay_frame_end( void )
 
   if( !IsRectEmpty( &invalidated_area ) ) {
 
+    /* Map the scaled image area to where it is shown on the screen */
+    if( fullscreen ) {
+      int factor = fullscreen_layout.replicate;
+
+      SetRect( &invalidated_area,
+               fullscreen_layout.x + invalidated_area.left * factor,
+               fullscreen_layout.y + invalidated_area.top * factor,
+               fullscreen_layout.x + invalidated_area.right * factor,
+               fullscreen_layout.y + invalidated_area.bottom * factor );
+    }
+
     /* Invalidate asynchronously: WM_PAINT will always copy the newest
        completed DIB, while Windows coalesces invalidations if painting
        cannot keep up. UpdateWindow() would synchronously dispatch WM_PAINT
@@ -343,6 +427,9 @@ uidisplay_frame_end( void )
 
     SetRectEmpty( &invalidated_area );
   }
+
+  /* If the user changed the full screen option, apply it now */
+  win32ui_fullscreen_apply();
 
   display_timing_frame_end();
 }
@@ -584,10 +671,126 @@ uidisplay_plot16( int x, int y, libspectrum_word data,
   }
 }
 
+/* The size of the image a scaler produces, in units of
+   DISPLAY_ASPECT_WIDTH x DISPLAY_SCREEN_HEIGHT */
+static int
+scaler_size( scaler_type scaler )
+{
+  /* Scaling factors are relative to the image, which is 2x for Timex */
+  return scaler_get_scaling_factor( scaler ) * image_scale + 0.5;
+}
+
+/* The scaler of the current family whose image, replicated by an integer
+   factor, covers the most of the full screen area */
+static scaler_type
+fullscreen_best_scaler( void )
+{
+  scaler_type scalers[ MAX_SCALE ];
+  int sizes[ MAX_SCALE ];
+  int i, max_size;
+
+  max_size = win32_fullscreen_max_size( fullscreen_area_width,
+                                        fullscreen_area_height,
+                                        DISPLAY_ASPECT_WIDTH,
+                                        DISPLAY_SCREEN_HEIGHT );
+
+  for( i = 0; i < MAX_SCALE; i++ ) {
+    scalers[i] = scaler_for_size( current_scaler, i + 1 );
+    sizes[i] = scaler_size( scalers[i] );
+  }
+
+  return scalers[ win32_fullscreen_best_size( max_size, sizes, MAX_SCALE ) ];
+}
+
+/* Fit the image of the current scaler to the full screen area */
+static void
+fullscreen_update_layout( void )
+{
+  win32display_current_size = scaler_size( current_scaler );
+
+  win32_fullscreen_get_layout( fullscreen_area_width, fullscreen_area_height,
+                               DISPLAY_ASPECT_WIDTH, DISPLAY_SCREEN_HEIGHT,
+                               win32display_current_size,
+                               &fullscreen_layout );
+
+  /* Repaint the borders too */
+  InvalidateRect( fuse_hWnd, NULL, FALSE );
+  display_refresh_all();
+}
+
+/* Pick the best scaler of the current family for the full screen area */
+static void
+fullscreen_pick_scaler( void )
+{
+  /* Wait for uidisplay_init() if the image size is not known yet */
+  if( !fullscreen || !image_width ) return;
+
+  scaler_activate_scaler( fullscreen_best_scaler() );
+  fullscreen_auto_scaler = current_scaler;
+
+  fullscreen_update_layout();
+}
+
+void
+win32display_fullscreen_begin( void )
+{
+  fullscreen = 1;
+  fullscreen_saved_scaler = current_scaler;
+  fullscreen_auto_scaler = SCALER_NUM;
+}
+
+/* Called with the size of the window whenever it changes in full screen */
+void
+win32display_fullscreen_resize( int width, int height )
+{
+  /* Same size, e.g. when restoring the minimised window: keep a scaler the
+     user may have picked while in full screen */
+  if( width == fullscreen_area_width && height == fullscreen_area_height &&
+      fullscreen_auto_scaler != SCALER_NUM )
+    return;
+
+  fullscreen_area_width = width;
+  fullscreen_area_height = height;
+
+  fullscreen_pick_scaler();
+}
+
+void
+win32display_fullscreen_end( void )
+{
+  /* Go back to the windowed scaler, unless the user picked another one
+     while in full screen */
+  fullscreen_restore_scaler = current_scaler == fullscreen_auto_scaler ?
+                              fullscreen_saved_scaler : current_scaler;
+  fullscreen = 0;
+}
+
+/* Called once the window has its windowed style and placement back */
+void
+win32display_fullscreen_restore( void )
+{
+  scaler_type scaler = fullscreen_restore_scaler;
+
+  /* The saved scaler may belong to the previous machine */
+  if( scaler == SCALER_NUM || !scaler_is_supported( scaler ) )
+    scaler = current_scaler;
+  fullscreen_restore_scaler = SCALER_NUM;
+
+  /* Selecting the scaler resizes the window to fit it */
+  scaler_select_scaler( scaler );
+
+  InvalidateRect( fuse_hWnd, NULL, FALSE );
+}
+
 static void
 win32display_load_gfx_mode( void )
 {
   float scale;
+
+  if( fullscreen ) {
+    fullscreen_update_layout();
+    return;
+  }
 
   scale = scaler_get_scaling_factor( current_scaler );
   win32display_drawing_area_resize( scale * image_width, scale * image_height, 0 );

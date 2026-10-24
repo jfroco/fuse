@@ -195,6 +195,7 @@ noinst_PROGRAMS += unittests/sdl2displaytest
 noinst_PROGRAMS += unittests/sdl2scalerstatetest
 noinst_PROGRAMS += unittests/sdl2joysticktest
 noinst_PROGRAMS += unittests/sdl2mousetest
+noinst_PROGRAMS += unittests/win32fullscreentest
 noinst_PROGRAMS += unittests/palcompositetest
 noinst_PROGRAMS += unittests/scalerexpandtest
 if ENABLE_AUTOMATION
@@ -278,6 +279,12 @@ unittests_sdl2mousetest_SOURCES = \
         ui/sdl2/sdl2_mouse_internal.c
 unittests_sdl2mousetest_LDADD = $(LIBSPECTRUM_LIBS)
 unittests_sdl2mousetest_CPPFLAGS = $(AM_CPPFLAGS)
+
+unittests_win32fullscreentest_SOURCES = \
+        unittests/win32fullscreentest.c \
+        ui/win32/win32_fullscreen_layout.c \
+        ui/win32/win32_fullscreen_layout.h
+unittests_win32fullscreentest_CPPFLAGS = $(AM_CPPFLAGS)
 
 unittests_palcompositetest_SOURCES = \
         unittests/palcompositetest.c \

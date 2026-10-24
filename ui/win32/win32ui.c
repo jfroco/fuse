@@ -78,6 +78,17 @@ static int size_paused = 0;
 /* this helps to finalize some blocking operations */
 static int exit_process_messages = 0;
 
+/* True while the main window covers the whole monitor */
+static int full_screen = 0;
+
+/* What to put back when leaving full screen */
+static WINDOWPLACEMENT windowed_placement;
+static LONG windowed_style;
+static HMENU main_menu;
+
+/* Window decorations removed in full screen */
+#define WINDOWED_ONLY_STYLES ( WS_CAPTION | WS_THICKFRAME | WS_SYSMENU )
+
 /* Structure used by the radio button selection widgets (eg the
    graphics filter selectors and Machine/Select) */
 typedef struct win32ui_select_info {
@@ -97,6 +108,8 @@ static int win32ui_gain_focus( HWND hWnd, WPARAM wParam, LPARAM lParam );
 static int win32ui_window_paint( HWND hWnd, WPARAM wParam, LPARAM lParam );
 static int win32ui_window_resize( HWND hWnd, WPARAM wParam, LPARAM lParam );
 static BOOL win32ui_window_resizing( HWND hWnd, WPARAM wParam, LPARAM lParam );
+
+static int win32ui_fullscreen_fit( void );
 
 static int
 selector_dialog( win32ui_select_info *items );
@@ -133,8 +146,11 @@ fuse_window_proc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
   switch( msg ) {
 
     case WM_COMMAND:
-      if( ! handle_menu( LOWORD( wParam ), hWnd ) )
+      if( ! handle_menu( LOWORD( wParam ), hWnd ) ) {
+        /* Apply a full screen change at once, even if emulation is paused */
+        win32ui_fullscreen_apply();
         return 0;
+      }
       break;
 
     case WM_DROPFILES:
@@ -257,6 +273,11 @@ fuse_window_proc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
       /* Improves speed and avoid flickering when main window is invalidated by
          another window */
       return TRUE;
+
+    case WM_DISPLAYCHANGE:
+      /* Keep covering the monitor if its resolution changes */
+      if( full_screen ) win32ui_fullscreen_fit();
+      break;
 
 #ifdef USE_JOYSTICK
 
@@ -718,7 +739,9 @@ set_active( HMENU menu, const char *path, int active )
 int
 ui_menu_item_set_active( const char *path, int active )
 {
-  return set_active( GetMenu( fuse_hWnd ), path, active );
+  /* The menu is detached from the window in full screen */
+  return set_active( full_screen ? main_menu : GetMenu( fuse_hWnd ), path,
+                     active );
 }
 
 ui_confirm_joystick_t
@@ -1057,11 +1080,16 @@ win32ui_window_resize( HWND hWnd, WPARAM wParam, LPARAM lParam )
       win32ui_process_messages( 0 );
     }
   } else {
-    win32display_drawing_area_resize( LOWORD( lParam ), HIWORD( lParam ), 1 );
+    if( full_screen ) {
+      win32display_fullscreen_resize( LOWORD( lParam ), HIWORD( lParam ) );
+    } else {
+      win32display_drawing_area_resize( LOWORD( lParam ), HIWORD( lParam ),
+                                        1 );
 
-    /* Resize statusbar and inner parts */
-    SendMessage( fuse_hStatusWindow, WM_SIZE, wParam, lParam );
-    win32statusbar_resize( hWnd, wParam, lParam );
+      /* Resize statusbar and inner parts */
+      SendMessage( fuse_hStatusWindow, WM_SIZE, wParam, lParam );
+      win32statusbar_resize( hWnd, wParam, lParam );
+    }
 
     if( size_paused ) {
       timer_estimate_reset();
@@ -1172,6 +1200,9 @@ win32ui_fuse_resize( int width, int height )
   RECT wr, cr, statr;
   int w_ofs, h_ofs;
 
+  /* In full screen the window keeps covering the monitor */
+  if( full_screen ) return;
+
   /* Calculate decorations before resizing */
   GetWindowRect( fuse_hWnd, &wr );
   GetClientRect( fuse_hWnd, &cr );
@@ -1198,6 +1229,95 @@ win32ui_fuse_resize( int width, int height )
               width + w_ofs,
               height + h_ofs,
               TRUE );
+}
+
+int
+win32ui_is_full_screen( void )
+{
+  return full_screen;
+}
+
+/* Make the borderless window cover the whole monitor it is on */
+static int
+win32ui_fullscreen_fit( void )
+{
+  MONITORINFO mi;
+  RECT cr;
+
+  mi.cbSize = sizeof( mi );
+  if( !GetMonitorInfo( MonitorFromWindow( fuse_hWnd,
+                                          MONITOR_DEFAULTTONEAREST ), &mi ) )
+    return 1;
+
+  SetWindowPos( fuse_hWnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top,
+                mi.rcMonitor.right - mi.rcMonitor.left,
+                mi.rcMonitor.bottom - mi.rcMonitor.top,
+                SWP_NOOWNERZORDER | SWP_FRAMECHANGED );
+
+  /* WM_SIZE is not sent if the size did not change */
+  GetClientRect( fuse_hWnd, &cr );
+  win32display_fullscreen_resize( cr.right - cr.left, cr.bottom - cr.top );
+
+  return 0;
+}
+
+static void
+win32ui_fullscreen_enter( void )
+{
+  windowed_placement.length = sizeof( windowed_placement );
+  if( !GetWindowPlacement( fuse_hWnd, &windowed_placement ) ) {
+    settings_current.full_screen = 0;
+    return;
+  }
+
+  windowed_style = GetWindowLong( fuse_hWnd, GWL_STYLE );
+  main_menu = GetMenu( fuse_hWnd );
+
+  full_screen = 1;
+  win32display_fullscreen_begin();
+
+  ShowWindow( fuse_hStatusWindow, SW_HIDE );
+  SetMenu( fuse_hWnd, NULL );
+  SetWindowLong( fuse_hWnd, GWL_STYLE, windowed_style & ~WINDOWED_ONLY_STYLES );
+
+  if( win32ui_fullscreen_fit() ) {
+    settings_current.full_screen = 0;
+    win32ui_fullscreen_apply();
+  }
+}
+
+static void
+win32ui_fullscreen_leave( void )
+{
+  full_screen = 0;
+  win32display_fullscreen_end();
+
+  SetWindowLong( fuse_hWnd, GWL_STYLE, windowed_style );
+  SetMenu( fuse_hWnd, main_menu );
+  if( settings_current.statusbar ) ShowWindow( fuse_hStatusWindow, SW_SHOW );
+
+  SetWindowPlacement( fuse_hWnd, &windowed_placement );
+  SetWindowPos( fuse_hWnd, NULL, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER |
+                SWP_FRAMECHANGED );
+
+  /* Restoring the scaler also resizes the window to fit it */
+  win32display_fullscreen_restore();
+}
+
+/* Switch between full screen and windowed mode if the full_screen setting
+   no longer matches the window. This is an equivalent of GTK's
+   gtkui_fullscreen_apply() */
+void
+win32ui_fullscreen_apply( void )
+{
+  if( !fuse_hWnd || !settings_current.full_screen == !full_screen ) return;
+
+  if( settings_current.full_screen ) {
+    win32ui_fullscreen_enter();
+  } else {
+    win32ui_fullscreen_leave();
+  }
 }
 
 /* win32ui_process_messages() is an equivalent of gtk's gtk_main(),

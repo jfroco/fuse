@@ -67,6 +67,8 @@ Checkbox, Black and white T(V), bw_tv, INPUT_KEY_v
 Checkbox, Full (s)creen, full_screen, INPUT_KEY_s
 #elif defined UI_GTK
 Checkbox, Full (s)creen, full_screen, INPUT_KEY_s
+#elif defined UI_WIN32
+Checkbox, Full (s)creen, full_screen, INPUT_KEY_s
 #endif
 Checkbox, Show status(b)ar, statusbar, INPUT_KEY_b
 Checkbox, Snap (j)oystick prompt, joy_prompt, INPUT_KEY_j

@@ -64,6 +64,8 @@ ui_win32_files = \
                  ui/win32/roms.h \
                  ui/win32/select_template.h \
                  ui/win32/statusbar.c \
+                 ui/win32/win32_fullscreen_layout.c \
+                 ui/win32/win32_fullscreen_layout.h \
                  ui/win32/win32display.c \
                  ui/win32/win32internals.h \
                  ui/win32/win32joystick.c \

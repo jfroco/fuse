@@ -641,10 +641,16 @@ option.
 .B \-\-full\-screen
 .RS
 Specify whether Fuse should run in full screen mode.
-This option is effective under the GTK and SDL2 UIs.
+This option is effective under the GTK, SDL2 and Win32 UIs.
 .PP
 Under SDL2, Fuse uses desktop fullscreen: the current desktop display mode is
 kept and Fuse scales the emulated display to fit it.
+.PP
+Under Win32, Fuse also keeps the desktop display mode and always uses integer
+scaling: the display is shown at the largest whole multiple of its size that
+fits the monitor, centred with black borders, so every emulated pixel covers
+the same number of screen pixels. The selected filter is used at the size
+which, repeated a whole number of times, fills the most of the screen.
 .RE
 .PP
 .B \-g
@@ -3376,7 +3382,7 @@ section for more details.
 .I "Options, Full Screen"
 .RS
 Switch Fuse between full screen and windowed mode.
-This menu is only available under the GTK and SDL2 UIs.
+This menu is only available under the GTK, SDL2 and Win32 UIs.
 .RE
 .PP
 .I "Options, Disk Options..."

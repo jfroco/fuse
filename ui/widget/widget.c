@@ -854,6 +854,12 @@ ui_popup_menu( int native_key )
     menu_file_exit( 0 );
     fuse_emulation_unpause();
     break;
+#ifdef UI_SDL2
+  case INPUT_KEY_F11:
+    /* The display applies the change at the end of the frame */
+    menu_options_fullscreen( 0 );
+    break;
+#endif				/* #ifdef UI_SDL2 */
 
   default: break;		/* Remove gcc warning */
 

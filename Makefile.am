@@ -261,7 +261,7 @@ include unittests/Makefile.am
 include z80/Makefile.am
 
 if UI_NULL
-check-local: check-widget-utf8 $(AUDIO_CHECK_TARGETS) fuse unittests/displaytest unittests/sdl2displaytest unittests/sdl2scalerstatetest unittests/sdl2joysticktest unittests/sdl2mousetest unittests/palcompositetest unittests/scalerexpandtest z80/coretest
+check-local: check-widget-utf8 $(AUDIO_CHECK_TARGETS) fuse unittests/displaytest unittests/sdl2displaytest unittests/sdl2scalerstatetest unittests/sdl2joysticktest unittests/sdl2mousetest unittests/win32fullscreentest unittests/palcompositetest unittests/scalerexpandtest z80/coretest
 	@test -e $(top_builddir)/roms || ln -sf "$(abs_top_srcdir)/roms" $(top_builddir)/roms
 	FUSE_TEST_SRCDIR="$(abs_top_srcdir)" $(top_builddir)/fuse --unittests
 	$(top_builddir)/unittests/displaytest
@@ -269,6 +269,7 @@ check-local: check-widget-utf8 $(AUDIO_CHECK_TARGETS) fuse unittests/displaytest
 	$(top_builddir)/unittests/sdl2scalerstatetest
 	$(top_builddir)/unittests/sdl2joysticktest
 	$(top_builddir)/unittests/sdl2mousetest
+	$(top_builddir)/unittests/win32fullscreentest
 	$(top_builddir)/unittests/palcompositetest
 	$(top_builddir)/unittests/scalerexpandtest
 if ENABLE_AUTOMATION

@@ -37,6 +37,10 @@ This builds all test binaries and runs them in sequence:
       SDL2 UI subsystem tests (display pipeline, scaler state
       machine, joystick mapping, mouse input).
 
+  unittests/win32fullscreentest
+      Win32 UI full screen layout: integer scale, scaler size choice
+      and centring of the image for common screen sizes.
+
   z80/coretest z80/tests/tests.in
       Z80 CPU core regression suite. Output is written to
       z80/tests.actual and compared against

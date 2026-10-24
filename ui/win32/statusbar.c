@@ -110,6 +110,9 @@ win32statusbar_set_visibility( int visible )
 {
   int current_state;
 
+  /* Hidden in full screen; shown again when leaving it if enabled */
+  if( win32ui_is_full_screen() ) return 0;
+
   current_state = IsWindowVisible( fuse_hStatusWindow );
   if( current_state == visible ) return 0;
 
