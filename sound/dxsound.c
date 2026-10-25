@@ -39,6 +39,11 @@ static LPDIRECTSOUNDBUFFER lpDSBuffer; /* sound buffer */
 
 static DWORD nextpos; /* next position in circular buffer */
 
+static int channels; /* 1 for mono, 2 for stereo */
+
+/* How far ahead of the play cursor to keep writing, in emulated frames */
+#define QUEUED_FRAMES 6
+
 int
 sound_lowlevel_init( const char *device, int *freqptr, int *stereoptr )
 {
@@ -81,7 +86,8 @@ sound_lowlevel_init( const char *device, int *freqptr, int *stereoptr )
 
   pcmwf.cbSize = 0;
   pcmwf.wBitsPerSample = 16;
-  pcmwf.nChannels = *stereoptr ? 2 : 1;
+  channels = *stereoptr ? 2 : 1;
+  pcmwf.nChannels = channels;
   pcmwf.nBlockAlign = pcmwf.nChannels * 2;
   pcmwf.nSamplesPerSec = *freqptr;
 
@@ -150,8 +156,14 @@ sound_lowlevel_frame( libspectrum_signed_word *data, int len )
   DWORD length1, length2;
   DWORD playcursor;
   long cursordiff;
+  long queued_bytes;
 
   len *= 2;
+
+  /* The core now hands over audio in parts of a frame, so measure how much
+     to keep queued in whole frames (as when each call carried a full frame)
+     rather than in multiples of this call's length */
+  queued_bytes = (long)sound_framesiz * channels * 2 * QUEUED_FRAMES;
 
   while( len ) {
     while( 1 ) {
@@ -162,7 +174,7 @@ sound_lowlevel_frame( libspectrum_signed_word *data, int len )
       if( playcursor > nextpos )
         cursordiff += MAX_AUDIO_BUFFER;
 
-      if( cursordiff < len * 6 )
+      if( cursordiff < queued_bytes )
         break;
 
       Sleep(10);
