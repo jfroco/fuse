@@ -252,7 +252,8 @@ _fuse()
             --no-multiface1-stealth --no-opus
             --no-plus3-detect-speedlock --no-plusd --no-printer
             --no-raw-s-net --no-recreated-spectrum --no-rs232-handshake
-            --no-rzx-autosaves --no-simpleide --no-slt --no-sound
+            --no-rzx-autosaves --no-simpleide --no-slt
+            --no-sna128-as-spectrum128 --no-sound
             --no-speccyboot --no-specdrum
             --no-spectranet --no-spectranet-disable --no-statusbar
             --no-traps --no-ttx2000s --no-unittests
@@ -281,7 +282,7 @@ _fuse()
             --rs232-handshake --rs232-rx --rs232-tx
             --rzx-autosaves --separation
             --simpleide --simpleide-masterfile --simpleide-slavefile --slt
-            --snapshot --snet --sound --sound-device
+            --sna128-as-spectrum128 --snapshot --snet --sound --sound-device
             --sound-freq --speaker-type --speccyboot --speccyboot-tap
             --specdrum --spectranet --spectranet-disable --speed
             --statusbar --tape

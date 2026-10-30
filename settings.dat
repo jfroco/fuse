@@ -45,6 +45,7 @@ auto_load, boolean, 1
 detect_loader, boolean, 1
 accelerate_loader, boolean, 1
 slt_traps, boolean, 1,, slt, slttraps
+sna128_as_spectrum128, boolean, 0
 double_screen, null, 0
 full_screen, boolean, 0
 writable_roms, boolean, 0

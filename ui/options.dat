@@ -84,6 +84,7 @@ Checkbox, (F)astloading, fastload, INPUT_KEY_f
 Checkbox, Use (t)ape traps, tape_traps, INPUT_KEY_t
 Checkbox, Accelerate l(o)aders, accelerate_loader, INPUT_KEY_o
 Checkbox, Use .s(l)t traps, slt_traps, INPUT_KEY_l
+Checkbox, Load 128K .sna as (S)pectrum 128K, sna128_as_spectrum128, INPUT_KEY_s
 Entry, (M)DR cartridge len, mdr_len, INPUT_KEY_m, 3, blocks
 Checkbox, Random len(g)th MDR cartridge, mdr_random_len, INPUT_KEY_g
 

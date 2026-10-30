@@ -1542,6 +1542,16 @@ to disable). Same as the Media Options dialog's
 option.
 .RE
 .PP
+.B \-\-sna128\-as\-spectrum128
+.RS
+Load 128K .sna snapshots on a Spectrum 128K. The .sna format does not
+record the machine a snapshot was saved on, and by default Fuse loads
+128K .sna files on a Pentagon 128K, which needs the Pentagon ROMs.
+(Disabled by default). Same as the Media Options dialog's
+.I "Load 128K .sna as Spectrum 128K"
+option.
+.RE
+.PP
 .B \-s
 .I file
 .br
@@ -2722,6 +2732,15 @@ supported. This instruction is not generally used except for this
 trap, but since it's not inconceivable that a program could be wanting
 to use the real instruction instead, you can choose whether to support
 the trap or not.
+.RE
+.PP
+.I "Load 128K .sna as Spectrum 128K"
+.RS
+The .sna format does not record which machine a 128K snapshot was saved
+on. By default Fuse loads 128K .sna files on a Pentagon 128K, the machine
+the format was extended for; this needs the Pentagon ROMs and timings.
+If this option is enabled, Fuse loads them on a Spectrum 128K instead.
+Snapshots that rely on Pentagon timings or on TR-DOS may then not work.
 .RE
 .PP
 .I "MDR cartridge len"

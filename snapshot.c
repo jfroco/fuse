@@ -37,6 +37,26 @@
 #include "ui/ui.h"
 #include "utils.h"
 
+/* The 128K .sna format records no machine type, so libspectrum reads every
+   such file as a Pentagon snapshot. Optionally load them on a plain
+   Spectrum 128K instead (Fuse bug #517) */
+static void
+sna128_select_machine( libspectrum_snap *snap, const unsigned char *buffer,
+                       size_t length, libspectrum_id_t type,
+                       const char *filename )
+{
+  if( !settings_current.sna128_as_spectrum128 ||
+      libspectrum_snap_machine( snap ) != LIBSPECTRUM_MACHINE_PENT )
+    return;
+
+  if( type == LIBSPECTRUM_ID_UNKNOWN &&
+      libspectrum_identify_file( &type, filename, buffer, length ) )
+    return;
+
+  if( type == LIBSPECTRUM_ID_SNAPSHOT_SNA )
+    libspectrum_snap_set_machine( snap, LIBSPECTRUM_MACHINE_128 );
+}
+
 int snapshot_read( const char *filename )
 {
   utils_file file;
@@ -52,6 +72,9 @@ int snapshot_read( const char *filename )
     utils_close_file( &file ); libspectrum_snap_free( snap );
     return error;
   }
+
+  sna128_select_machine( snap, file.buffer, file.length,
+                         LIBSPECTRUM_ID_UNKNOWN, filename );
 
   utils_close_file( &file );
 
@@ -72,7 +95,9 @@ snapshot_read_buffer( const unsigned char *buffer, size_t length,
 
   error = libspectrum_snap_read( snap, buffer, length, type, NULL );
   if( error ) { libspectrum_snap_free( snap ); return error; }
-    
+
+  sna128_select_machine( snap, buffer, length, type, NULL );
+
   error = snapshot_copy_from( snap );
   if( error ) { libspectrum_snap_free( snap ); return error; }
 
