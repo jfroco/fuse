@@ -63,8 +63,13 @@ sound_lowlevel_init( const char *device, int *freqptr, int *stereoptr )
     samplerate = AI_SAMPLERATE_48KHZ;
     break;
   default:
-    printf("Sample rate %d not supported on Wii\n", *freqptr);
-    return 1;
+    /* The Wii audio interface supports only 32 kHz and 48 kHz, but Fuse's
+       default sound frequency is 44.1 kHz. Rather than failing (which left
+       Fuse without sound), use 48 kHz and report it back through freqptr
+       so the rest of Fuse generates sound at that rate. */
+    *freqptr = 48000;
+    samplerate = AI_SAMPLERATE_48KHZ;
+    break;
   }
 
   if( sfifo_init( &sound_fifo, BUFSIZE ) ) {
