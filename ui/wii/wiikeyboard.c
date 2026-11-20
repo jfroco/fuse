@@ -176,15 +176,29 @@ kbdthread_fn( void *arg )
 int
 wiikeyboard_init( void )
 {
+  /* A USB keyboard is optional: Fuse can be used with the Wii Remote alone.
+     /dev/usb/kbd is the old IOS keyboard interface, which may be missing
+     from the running IOS (or from the one Dolphin emulates), so if it
+     cannot be opened just warn and carry on without a keyboard instead of
+     making Fuse fail to start. */
   kbd = IOS_Open( "/dev/usb/kbd", IPC_OPEN_RW );
-  if( kbd < 0 ) return kbd;
+  if( kbd < 0 ) {
+    ui_error( UI_ERROR_WARNING,
+              "couldn't open USB keyboard (IOS error %d); continuing without it",
+              (int)kbd );
+    kbd = -1;
+    return 0;
+  }
 
   if( LWP_MutexInit(&kbdmutex, 0) != 0 ||
       LWP_CreateThread(&kbdthread, kbdthread_fn, NULL, NULL, 0, 80) != 0) {
+    ui_error( UI_ERROR_WARNING,
+              "couldn't start USB keyboard thread; continuing without it" );
     IOS_Close(kbd);
-    return 1;
+    kbd = -1;
+    return 0;
   }
-  
+
   return 0;
 }
 
@@ -199,6 +213,10 @@ void
 keyboard_update( void )
 {
   int i;
+
+  /* No USB keyboard (see wiikeyboard_init()): nothing to do, and the
+     mutex has not been initialised */
+  if( kbd < 0 ) return;
 
   for( i=0; i<releasequeuepos; i++ ) input_event(&(releasequeue[i]));
   releasequeuepos = 0;

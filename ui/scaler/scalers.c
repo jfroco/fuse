@@ -1519,6 +1519,7 @@ typedef struct composite_scaler_cache {
   snes_ntsc_t ntsc[4];
 } composite_scaler_cache;
 
+#ifndef GEKKO
 static void composite_scaler_make_setup( snes_ntsc_setup_t *setup );
 static double composite_scaler_adjust_brightness( double brightness,
                                                   double factor );
@@ -1530,6 +1531,7 @@ static void composite_scaler_yuv_to_rgb( libspectrum_signed_dword y,
                                          libspectrum_signed_dword u,
                                          libspectrum_signed_dword v,
                                          uint8_t rgb[4] );
+#endif				/* #ifndef GEKKO */
 static void composite_scaler_blit( const composite_scaler_config *config,
                                    const libspectrum_byte *srcPtr,
                                    libspectrum_dword srcPitch,
@@ -1894,6 +1896,7 @@ FUNCTION( scaler_HQ4x ) ( const libspectrum_byte *srcPtr,
   }
 }
 
+#ifndef GEKKO
 static inline scaler_data_type
 blargg_ntsc_rgb_to_pixel( const uint8_t *rgb )
 {
@@ -2181,6 +2184,34 @@ composite_scaler_blit( const composite_scaler_config *config,
 
   if( config->cycle_phase ) cache->burst_phase = burst_phase;
 }
+
+#else				/* #ifndef GEKKO */
+
+/* On the Wii, the composite (PAL TV and NTSC TV) scalers are left out.
+   composite_scaler_blit() keeps one static composite_scaler_cache per scale
+   (2x, 3x, 4x) of about 16 MB each, and this file is compiled twice (16 and
+   32 bit scalers), which adds up to 96 MB of .bss. The Wii has only 24 MB
+   of MEM1, where the executable is loaded, so with those caches the program
+   crashes at startup before reaching main().
+
+   This is done with #ifndef GEKKO rather than by changing the caches (e.g.
+   allocating them on first use) so that the code used by every other
+   platform stays exactly as it is.
+
+   The PAL TV and NTSC TV scaler functions are still defined, because the
+   scaler table in ui/scaler/scaler.c refers to them, but ui/wii/wiidisplay.c
+   does not register them, so this stub is never called. */
+static void
+composite_scaler_blit( const composite_scaler_config *config GCC_UNUSED,
+                       const libspectrum_byte *srcPtr GCC_UNUSED,
+                       libspectrum_dword srcPitch GCC_UNUSED,
+                       libspectrum_byte *dstPtr GCC_UNUSED,
+                       libspectrum_dword dstPitch GCC_UNUSED,
+                       int width GCC_UNUSED, int height GCC_UNUSED )
+{
+}
+
+#endif				/* #ifndef GEKKO */
 
 void
 FUNCTION( scaler_blargg_NTSC_2x )( const libspectrum_byte *srcPtr,
