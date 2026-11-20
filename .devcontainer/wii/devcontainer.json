@@ -1,0 +1,25 @@
+{
+  "name": "Fuse for Wii (devkitPPC cross-compilation)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      // Etiqueta de la imagen devkitpro/devkitppc (toolchain, libogc y portlibs).
+      "DEVKITPPC_TAG": "20261102",
+      // Commit de libspectrum (git master) contra el que se compila Fuse.
+      "LIBSPECTRUM_REPO": "https://git.code.sf.net/p/fuse-emulator/libspectrum",
+      "LIBSPECTRUM_REF": "4018215cdb8a1674de09947af98520bf243b1658"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "remoteUser": "root"
+}

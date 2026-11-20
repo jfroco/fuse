@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Build Fuse for the Nintendo Wii inside the Wii devcontainer.
+#
+# Usage: .devcontainer/wii/build-wii.sh
+#   Configures Fuse out of tree with the Wii UI, builds it, converts the ELF
+#   to a DOL and lays out a Homebrew Channel package in
+#   dist/wii/apps/fuse/ (boot.dol plus the ROMs and data files Fuse needs).
+#
+# Environment:
+#   FUSE_BUILD_DIR  build directory  (default: /tmp/fuse-build-wii)
+#   FUSE_DIST_DIR   output directory (default: <source>/dist/wii)
+#   JOBS            parallel make jobs (default: nproc)
+
+set -euo pipefail
+
+src_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+build_dir=${FUSE_BUILD_DIR:-/tmp/fuse-build-wii}
+dist_dir=${FUSE_DIST_DIR:-$src_dir/dist/wii}
+jobs=${JOBS:-$(nproc)}
+host=powerpc-eabi
+
+if [ -z "${PORTLIBS_WII:-}" ]; then
+  # shellcheck disable=SC1091
+  source /etc/profile.d/wii-env.sh
+fi
+
+# Out-of-tree builds need a source tree that has not been configured in place
+if [ -f "$src_dir/config.status" ]; then
+  echo "ERROR: $src_dir has been configured in-tree; run 'make distclean' there first." >&2
+  exit 1
+fi
+
+if [ ! -x "$src_dir/configure" ] || [ "$src_dir/configure.ac" -nt "$src_dir/configure" ]; then
+  echo "Running autogen.sh .."
+  (cd "$src_dir" && ./autogen.sh)
+fi
+
+echo "=== Building Wii UI in $build_dir"
+mkdir -p "$build_dir"
+cd "$build_dir"
+
+# wiivars.sh (sourced above) sets the devkitPPC CFLAGS/CPPFLAGS/LDFLAGS/LIBS;
+# here we add what Fuse needs on top of them:
+# - GEKKO: the libogc headers (wiiuse in particular) expect it to be defined.
+# - -lz -lbz2: libspectrum is static and its .pc file has no Libs.private.
+# - -lwiikeyboard -lfat -lwiiuse -lbte: libogc libraries used by the Wii UI;
+#   they must come before -logc, which wiivars.sh already puts in LIBS.
+# Features the Wii cannot provide are disabled explicitly: gpm (Linux console
+# mouse), sockets and pthreads (Spectranet, TTX2000 S) and desktop integration.
+"$src_dir/configure" \
+  --host=$host \
+  --prefix=/ \
+  --with-wii \
+  --without-gpm \
+  --without-libxml2 \
+  --with-audio-driver=wii \
+  --disable-sockets \
+  --without-pthread \
+  --disable-desktop-integration \
+  CPPFLAGS="-DGEKKO $CPPFLAGS" \
+  LIBS="-lspectrum -lz -lbz2 -lwiikeyboard -lfat -lwiiuse -lbte $LIBS" \
+  2>&1 | tee configure.out
+
+# Fail early if configure picked something other than what was requested
+grep -q "User interface: wii" configure.out
+grep -q "Selected audio driver: wii" configure.out
+
+make -j"$jobs"
+
+# Homebrew Channel layout: sd:/apps/fuse/boot.dol, with the ROMs, lib files
+# and widget font next to it (see compat/wii/paths.c)
+package_dir=$dist_dir/apps/fuse
+rm -rf "$package_dir"
+mkdir -p "$package_dir/roms" "$package_dir/lib" "$package_dir/ui/widget"
+
+elf2dol fuse "$package_dir/boot.dol"
+cp "$src_dir"/roms/*.rom "$src_dir/roms/README.copyright" "$package_dir/roms/"
+cp "$src_dir"/lib/*.bmp "$src_dir"/lib/*.png "$src_dir"/lib/*.scr "$package_dir/lib/"
+cp ui/widget/fuse.font "$package_dir/ui/widget/"
+cp "$src_dir/COPYING" "$package_dir/COPYING.txt"
+
+echo "=== Wii package: $package_dir"
+ls -l "$package_dir/boot.dol"
