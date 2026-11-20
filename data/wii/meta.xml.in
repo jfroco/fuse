@@ -17,9 +17,11 @@ Controls (Wii Remote held sideways, 1 and 2 buttons on the right):
 
 Load games (.z80, .sna, .tzx, .tap and more) from the SD card with File -&gt; Open. To play with the Wii Remote, choose a joystick type in Options -&gt; Joysticks and select the same one in the game.
 
+Options -&gt; Save stores the settings in sd:/apps/fuse/fuserc; to save them automatically on exit, tick Options -&gt; General -&gt; Auto-save settings.
+
 To quit, open the menu and choose File -&gt; Exit.
 
 Known limitations:
-- USB keyboards are not supported yet
+- USB keyboard support has not been tested on real hardware yet
 - The PAL TV and NTSC TV display filters are not available</long_description>
 </app>

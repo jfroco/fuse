@@ -5,7 +5,7 @@
 #   Configures Fuse out of tree with the Wii UI, builds it, converts the ELF
 #   to a DOL and lays out a Homebrew Channel package in
 #   dist/wii/apps/fuse/ (boot.dol, meta.xml, icon.png and the ROMs and data
-#   files Fuse needs).
+#   files Fuse needs), zipped as dist/wii/fuse-<version>-wii.zip.
 #
 # Environment:
 #   FUSE_BUILD_DIR  build directory  (default: /tmp/fuse-build-wii)
@@ -88,5 +88,13 @@ cp "$src_dir"/lib/*.bmp "$src_dir"/lib/*.png "$src_dir"/lib/*.scr "$package_dir/
 cp ui/widget/fuse.font "$package_dir/ui/widget/"
 cp "$src_dir/COPYING" "$package_dir/COPYING.txt"
 
+# Distribution zip: extracting it at the root of the SD card puts Fuse in
+# sd:/apps/fuse/
+zip_name=fuse-$version-wii.zip
+rm -f "$dist_dir/$zip_name" "$dist_dir/$zip_name.sha1"
+(cd "$dist_dir" && zip -q -9 -r "$zip_name" apps/fuse &&
+   sha1sum "$zip_name" > "$zip_name.sha1")
+
 echo "=== Wii package: $package_dir"
 ls -l "$package_dir/boot.dol"
+echo "=== Wii zip: $dist_dir/$zip_name"
