@@ -26,6 +26,24 @@
 
 #include "utils.h"
 
+#ifdef GEKKO
+/* On the Wii, libfat (based on FatFs) exports its own global disk_write(),
+   the low-level sector write routine of its disk I/O layer. Linking Fuse's
+   disk_write() alongside it fails with a "multiple definition" error, so
+   the Fuse function is renamed at the symbol level for Wii builds only.
+
+   The rename is done here, rather than by changing the function name in
+   the source, to avoid touching files shared by every platform:
+   peripherals/disk/disk.c (definition), peripherals/disk/disk.h
+   (declaration), uimedia.c and unittests/unittests.c (callers). All of them
+   include this header, so they all see the same renamed symbol.
+
+   Do not work around this with --allow-multiple-definition: libfat would
+   then call Fuse's disk_write() when writing sectors to the SD card or USB
+   drive. */
+#define disk_write fuse_disk_write
+#endif				/* #ifdef GEKKO */
+
 static const unsigned int DISK_FLAG_NONE = 0x00;
 static const unsigned int DISK_FLAG_PLUS3_CPC = 0x01;	/* try to fix some CPC issue */
 static const unsigned int DISK_FLAG_OPEN_DS = 0x02;	/* try to open the other side too */
