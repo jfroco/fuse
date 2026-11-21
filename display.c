@@ -91,6 +91,7 @@ display_init( int *argc, char ***argv )
   return 0;
 }
 
+#ifndef GEKKO
 static int
 display_init_wrapper( void *context )
 {
@@ -99,6 +100,7 @@ display_init_wrapper( void *context )
 
   return display_init( typed_context->argc, typed_context->argv );
 }
+#endif                          /* #ifndef GEKKO */
 
 void
 display_register_startup( display_startup_context *context )
@@ -108,6 +110,15 @@ display_register_startup( display_startup_context *context )
   startup_manager_register_no_dependencies( STARTUP_MANAGER_MODULE_DISPLAY,
                                             display_init_wrapper, context,
                                             NULL );
+#else                           /* #ifndef GEKKO */
+  /* On the Wii, fuse_init() calls display_init() itself before anything
+     else, so that messages can be shown on screen. The display module must
+     still be registered, with no init function, because other modules
+     (e.g. in fuse.c and the IDE peripherals) depend on it: without it the
+     startup manager can never call them and Fuse fails to start with
+     "N startup modules could not be called". */
+  startup_manager_register_no_dependencies( STARTUP_MANAGER_MODULE_DISPLAY,
+                                            NULL, NULL, NULL );
 #endif                          /* #ifndef GEKKO */
 }
 

@@ -238,7 +238,8 @@ register_scalers( void )
       scaler_register( SCALER_SUPER2XSAI );
       scaler_register( SCALER_SUPEREAGLE );
       scaler_register( SCALER_DOTMATRIX );
-      scaler_register( SCALER_PALTV2X );
+      /* No PAL TV / NTSC TV scalers: they are left out of Wii builds, see
+         composite_scaler_blit() in ui/scaler/scalers.c */
       scaler_register( SCALER_HQ2X );
       if( !scaler_is_supported( current_scaler ) )
 	scaler_select_scaler( SCALER_DOUBLESIZE );
@@ -258,7 +259,6 @@ register_scalers( void )
       scaler_register( SCALER_TRIPLESIZE );
       scaler_register( SCALER_TV3X );
       scaler_register( SCALER_ADVMAME3X );
-      scaler_register( SCALER_PALTV3X );
       scaler_register( SCALER_HQ3X );
       if( !scaler_is_supported( current_scaler ) )
 	scaler_select_scaler( SCALER_TRIPLESIZE );
@@ -304,6 +304,12 @@ int wiidisplay_init(void)
   xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
   console_init(xfb, 20, 20, rmode->fbWidth, rmode->xfbHeight,
 	       rmode->fbWidth*VI_DISPLAY_PIX_SZ);
+
+  /* Send stderr (where ui_error() writes) to Dolphin's OSReport log, so
+     startup errors can be read even if Fuse exits straight away. This must
+     come after console_init(), which routes both stdout and stderr to the
+     on-screen console and would undo an earlier redirection. */
+  SYS_STDIO_Report( false );
 
   VIDEO_Configure(rmode);
   VIDEO_SetNextFramebuffer(xfb);

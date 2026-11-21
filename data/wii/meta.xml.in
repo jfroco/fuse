@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<app version="1">
+  <name>Fuse</name>
+  <coder>Philip Kendall, Bjoern Giesler, Juan Francisco Roco and the Fuse team</coder>
+  <version>@VERSION@</version>
+  <release_date>@RELEASE_DATE@</release_date>
+  <short_description>ZX Spectrum emulator</short_description>
+  <long_description>Fuse, the Free Unix Spectrum Emulator, emulates the Sinclair ZX Spectrum 16K, 48K, 128K, +2, +2A, +3 and many clones, together with a wide range of peripherals.
+
+Homepage: https://fuse-emulator.sourceforge.net
+
+Controls (Wii Remote held sideways, 1 and 2 buttons on the right):
+- HOME: open the menu
+- D-pad: move through menus and files; joystick in games
+- 1: select a menu entry or file
+- 2: go back / cancel
+
+Load games (.z80, .sna, .tzx, .tap and more) from the SD card with File -&gt; Open. To play with the Wii Remote, choose a joystick type in Options -&gt; Joysticks and select the same one in the game.
+
+Options -&gt; Save stores the settings in sd:/apps/fuse/fuserc; to save them automatically on exit, tick Options -&gt; General -&gt; Auto-save settings.
+
+To quit, open the menu and choose File -&gt; Exit.
+
+Known limitations:
+- USB keyboard support has not been tested on real hardware yet
+- The PAL TV and NTSC TV display filters are not available</long_description>
+</app>

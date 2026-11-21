@@ -774,10 +774,16 @@ widget_filesel_chdir( void )
     widget_end_widget( WIDGET_FINISHED_CANCEL );
     return 1;
   }
-#ifndef GEKKO
-  /* Wii getcwd() already has the slash on the end */
+#ifdef GEKKO
+  /* Older libogc versions returned the Wii current directory with a slash
+     on the end ("sd:/apps/fuse/"), but current ones do not
+     ("sd:/apps/fuse"). Add the separator only when it is missing, so the
+     path is right with both; otherwise the file selector builds paths such
+     as "sd:/apps/fuseroms" and silently fails to open files or enter
+     directories. */
+  if( fn[0] && fn[ strlen( fn ) - 1 ] != '/' )
+#endif				/* #ifdef GEKKO */
   strcat( fn, FUSE_DIR_SEP_STR );
-#endif				/* #ifndef GEKKO */
   strcat( fn, widget_filenames[ current_file ]->name );
 
 /*
@@ -787,11 +793,17 @@ http://thread.gmane.org/gmane.comp.gnu.mingw.user/9197
 */ 
 
   if( chdir( fn ) == -1 ) {
-#ifndef WIN32
-    if( errno == ENOTDIR ) {
-#else   /* #ifndef WIN32 */
+#if defined WIN32
     if( GetFileAttributes( fn ) != FILE_ATTRIBUTE_DIRECTORY ) {
-#endif  /* #ifndef WIN32 */
+#elif defined GEKKO
+    /* On the Wii, libfat does not set errno to ENOTDIR when chdir() is
+       given a file, so the file selector would silently do nothing when a
+       file is chosen. Ask stat() whether it is a file instead. */
+    struct stat file_info;
+    if( !stat( fn, &file_info ) && !S_ISDIR( file_info.st_mode ) ) {
+#else   /* #if defined WIN32 */
+    if( errno == ENOTDIR ) {
+#endif  /* #if defined WIN32 */
       widget_filesel_name = fn; fn = NULL;
       if( exit_all_widgets ) {
 	widget_end_all( WIDGET_FINISHED_OK );

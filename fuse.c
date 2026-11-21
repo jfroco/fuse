@@ -46,8 +46,7 @@
 #endif /* SDL 2 UI or joystick support */
 
 #ifdef GEKKO
-/* #include <fat.h>
- that requires disc_io.h which does not exist for wii? */
+#include <fat.h>
 #endif				/* #ifdef GEKKO */
 
 #ifdef HAVE_LIB_XML2
