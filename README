@@ -1,3 +1,55 @@
+Unofficial Wii and 64-bit Windows fork of Fuse
+==============================================
+
+This is an unofficial fork of Fuse (the Free Unix Spectrum Emulator),
+maintained by Juan Francisco Roco. It adds a working Nintendo Wii port
+and improvements for 64-bit Windows builds. It is not affiliated with
+the Fuse project: please report problems with these changes at
+https://github.com/jfroco/fuse/issues and not to the Fuse developers.
+
+The official Fuse is at https://fuse-emulator.sourceforge.net
+
+Downloads: https://github.com/jfroco/fuse/releases
+
+Nintendo Wii
+------------
+
+The Wii port, originally written by Bjoern Giesler for Fuse 0.9.0, has
+been brought up to date and runs again from the Homebrew Channel:
+
+* Builds with current devkitPPC and libogc.
+* Starts up correctly again (memory use and startup fixes).
+* The file selector opens games and directories again.
+* Sound works (48 kHz output).
+* USB keyboard support rewritten with libogc's libwiikeyboard
+  (not yet tested on real hardware).
+* Settings can be saved (Options > Save) and are loaded on startup.
+* Homebrew Channel icon and description.
+
+Status: preview, tested in the Dolphin emulator. The PAL TV and NTSC TV
+display filters are not available on the Wii.
+
+To install, extract fuse-<version>-wii.zip at the root of the SD card.
+To build it, see .devcontainer/wii/build-wii.sh.
+
+64-bit Windows
+--------------
+
+* 64-bit builds of the Win32 and SDL2 user interfaces, made with a
+  cross-compilation devcontainer (see .devcontainer/build-windows.sh).
+* The Win32 UI now has a full screen mode (F11, Options > Full screen
+  or --full-screen), with integer scaling centred on the monitor.
+* In the SDL2 UI the F11 shortcut for full screen now works.
+* Fixed crackling sound with the DirectSound audio driver.
+
+Other changes
+-------------
+
+* New option to load 128K .sna snapshots as a Spectrum 128K instead of
+  a Pentagon (Media options, or --sna128-as-spectrum128; see Fuse bug
+  #517).
+
+
 The Free Unix Spectrum Emulator (Fuse) 1.10.0
 ============================================
 
